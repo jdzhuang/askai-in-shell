@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -o pipefail
+askai_dir="$HOME/.askai"; [ -d $askai_dir ] || mkdir -p $askai_dir
+cores="variables util editor history ai token interactive"; v_loaded=".";
+[ -f $askai_dir/config ] && { source $askai_dir/config; v_loaded="$v_loaded config"; } 
+for comp in $cores; do f="$askai_dir/core/$comp.bash"; [ -f $f ] && { source $f; v_loaded="$v_loaded $comp"; }; done
+
+op_chat() {
+    _info # runtime info
+    local query=0; local usr_msg=""; local input=""; local quote_wrap=""; 
+    if [ $pipemode -eq 1 ]; then # pipeline mode
+        [ -n "$usr_prompt" ] && { result="$(editor - 2>/dev/null)"; _use_result; you_say; input=":$(echo $usr_prompt|editor - --mixed)"; } 
+        [ -z "$usr_prompt" ] && { you_say; input=":$(editor - )"; }
+        echo "$input" | to_history $history_f; 
+    fi
+    
+    while true; do
+        round=$((round+1))
+        if [ -z "$usr_msg" ]; then 
+            [ -z "$input" ] && { you_say; input=$(editor /dev/tty); echo "$input" | to_history $history_f; }
+            _need_exit "$input" && { bot_say; echo "bye."; exit 0; } # no query
+            _need_help "$input" && _help && { usr_msg=""; input=""; continue; } # no query
+            _need_ 'history' "$input" && { input=$(from_history $history_f|editor - --mixed); echo "$input"|to_history $history_f; continue; } # no query
+            _need_ 'save' "$input" && _save "$input" && { usr_msg=""; input=""; continue; } # no query
+            _need_ 'clear' "$input" && _clear && { usr_msg=""; input=""; continue; } # no query
+            _need_ 'cd ' "$input" && { _set_workdir "$input" && cd $workdir; } && { usr_msg=""; input=""; continue; } # no query
+            _need_ 'choose' "$input" && { input='cat $Q | fzf --multi '; } # no query
+            if _need_ai "$input"; then # as an AI query
+                [ -n "$quote" ] && quote_wrap=$(echo "$quote"|pipe_quote)
+                usr_msg=$quote_wrap$input; 
+            else # as a command(and execute immediately)
+                answer="$input"; _strip_answer; bot_say; echo "$answer" >&2; 
+                if ! _exec_answer; then bot_say; confirm "use $(c_blue 'AI')?" && { input=":$input"; executed=0; continue; }; fi
+                query=1; 
+            fi
+        fi
+
+        if [ $query -eq 0 ]; then
+            bot_say; echo "$(c_gray 'copy that.')" >&2; _log "making a request..."
+            answer=$(echo "$usr_msg" | pipe_for_ai)
+            bot_say; echo "$answer" >&2;
+        fi
+       
+        if [ $executed -eq 0 ]; then 
+            bot_say; confirm "$(c_red 'execute code?')" && _strip_answer && _exec_answer
+            if [ $executed -eq 0 ]; then 
+                bot_say; confirm "not good enough? $(c_blue ' try another shot')." && { you_say; echo "$input"; continue; } 
+            fi
+        fi
+        [ $executed -eq 1 ] && [ -n "$result" ] && { bot_say; confirm "use $(c_red 'exec') $(c_yellow 'result')?" && { _log "use result."; _use_result; } }
+        executed=0; usr_msg=""; input=""; query=0;
+    done
+}
+
+op_models() { #TODO compatibility
+    _log "get models."; 
+    [[ ! "$endpoint" =~ .*deepseek.* ]] && { _err "'models' is for deepseek only, at the moment."; exit 1; }
+    models=$( ai_models )
+    echo -e "$(c_gray 'models:')\n$(echo "$models"|while read m; do echo $(c_yellow " $m"); done)"
+}
+
+op_balance() { #TODO compatibility
+    _log "get balance."; 
+    [[ ! "$endpoint" =~ .*deepseek.* ]] && { _err "'balance' is for deepseek only, at the moment."; exit 1; }
+    read balance currency < <( ai_balance )
+    echo "$(c_gray 'balance'): $(c_blue $balance) $(c_yellow $currency)"
+}
+
+usage(){ 
+    echo "Usage: $0 [chat|models|balance] [-e <ENDPOINT>] [-m <MODEL>] [-p <PROMPT>]">&2; 
+    printf "  %-20s %s\n" "-h, --help" "show this help message and exit">&2;
+    printf "  %-20s %s\n" "-e, --endpoint" "openai(compatible) endpoint">&2;
+    printf "  %-20s %s\n" "-m, --model" "openai(compatible) model">&2;
+    printf "  %-20s %s\n" "-p, --prompt" "user prompt(for pipeline)">&2;
+    echo "Notice:">&2
+    echo "  'endpoint', 'model', and 'XXX_API_KEY' can be set in ~/.askai/config">&2
+    echo "">&2
+    echo "Example:">&2
+    echo "  $(c_green '> ')echo '你好' | $0 chat -p -e https://api.openai.com/v1 -m gpt-3.5-turbo ">&2
+    echo "  $(c_green '> ')git diff --cached | $0 chat -p '针对这些文件变更,编写好commit信息(中文)。' ">&2
+    echo "  $(c_green '> ')$0 chat -i">&2
+    echo "">&2
+}
+
+op=""; 
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help) usage; exit 0;;
+        chat|models|balance) op="$1"; shift;;
+        -e|--endpoint) endpoint="$2"; shift 2;;
+        -m|--model) model="$2"; shift 2;;
+        -p|--prompt) pipemode=1; usr_prompt="$2"; shift; shift;; # usr_prompt could be empty, 'shift 2' would failed.
+        *) shift;;
+    esac
+done
+
+if [ -z "$op" ]; then usage; exit 1; fi
+command -v curl >/dev/null 2>&1 || { _err "curl not found."; exit 1; }
+command -v jq >/dev/null 2>&1 || { _err "jq not found."; exit 1; }
+tkn=$(init_token); [ -n "$tkn" ] || { _err "no api key found."; exit 1; }
+
+op_$op
+
