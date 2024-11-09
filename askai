@@ -67,7 +67,8 @@ op_balance() { #TODO compatibility
 }
 
 usage(){ 
-    echo "Usage: $0 [chat|models|balance] [-e <ENDPOINT>] [-m <MODEL>] [-p <PROMPT>]">&2; 
+    local n=$(basename $0)
+    echo "Usage: $n [chat|models|balance] [-e <ENDPOINT>] [-m <MODEL>] [-p <PROMPT>]">&2; 
     printf "  %-20s %s\n" "-h, --help" "show this help message and exit">&2;
     printf "  %-20s %s\n" "-e, --endpoint" "openai(compatible) endpoint">&2;
     printf "  %-20s %s\n" "-m, --model" "openai(compatible) model">&2;
@@ -76,20 +77,22 @@ usage(){
     echo "  'endpoint', 'model', and 'XXX_API_KEY' can be set in ~/.askai/config">&2
     echo "">&2
     echo "Example:">&2
-    echo "  $(c_green '> ')echo '你好' | $0 chat -p -e https://api.openai.com/v1 -m gpt-3.5-turbo ">&2
-    echo "  $(c_green '> ')git diff --cached | $0 chat -p '针对这些文件变更,编写好commit信息(中文)。' ">&2
-    echo "  $(c_green '> ')$0 chat -i">&2
+    echo "  $(c_green '> ')$n chat ">&2
+    echo "  $(c_green '> ')$n chat -e https://api.openai.com/v1 -m gpt-3.5-turbo ">&2
+    echo "  $(c_green '> ')echo '你好' | $n chat -q ">&2
+    echo "  $(c_green '> ')git diff --cached | $n chat -p '针对这些文件变更,编写好commit信息(中文)。' ">&2
     echo "">&2
 }
 
-op=""; 
+op="$1"
 while [ $# -gt 0 ]; do
     case "$1" in
-        -h|--help) usage; exit 0;;
         chat|models|balance) op="$1"; shift;;
+        -h|--help)     usage; exit 0;;
         -e|--endpoint) endpoint="$2"; shift 2;;
-        -m|--model) model="$2"; shift 2;;
-        -p|--prompt) pipemode=1; usr_prompt="$2"; shift; shift;; # usr_prompt could be empty, 'shift 2' would failed.
+        -m|--model)    model="$2"; shift 2;;
+        -p|--prompt)   pipemode=1; usr_prompt="$2"; shift 2;; 
+        -q|--query)    pipemode=1; shift;; # query directly without user prompt.
         *) shift;;
     esac
 done
