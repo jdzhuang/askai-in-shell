@@ -23,7 +23,7 @@ op_chat() {
             _need_ 'history' "$input" && { input=$(from_history $history_f|editor - --mixed); echo "$input"|to_history $history_f; continue; } # no query
             _need_ 'save' "$input" && _save "$input" && { usr_msg=""; input=""; continue; } # no query
             _need_ 'clear' "$input" && _clear && { usr_msg=""; input=""; continue; } # no query
-            _need_ 'cd ' "$input" && { _set_workdir "$input" && cd $workdir; } && { usr_msg=""; input=""; continue; } # no query
+            _need_ 'cd ' "$input" && { _set_workdir "$input" && cd "$workdir"; _log "workdir: '$workdir'"; } && { usr_msg=""; input=""; continue; } # no query
             _need_ 'choose' "$input" && { input='cat $Q | fzf --multi '; } # no query
             if _need_ai "$input"; then # as an AI query
                 [ -n "$quote" ] && quote_wrap=$(echo "$quote"|pipe_quote)

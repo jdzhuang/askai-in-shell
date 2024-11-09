@@ -25,7 +25,7 @@ _clear() { > $quote_f; quote=""; quote_wrap=""; bot_say; echo "Quote cleared."; 
 _strip_answer() { local cmd=$(echo "$answer" | sed -e 's/^ *[:：] *//g' | sed -e 's/^ *```.*//g' | sed -e 's/`/'\''/g' ); answer="$cmd"; }
 _exec_answer() { local wd="done"; local rtn=0; result=$( _log "executing..."; echo "Q='$quote_f';$defined_cmd; $answer" | bash )||{ wd="failed"; rtn=1; }; echo "$result" >&2; _log "$wd"; executed=1; return $rtn; }
 _expand_dir() { local dir=$(echo "$@" | sed -e 's/^cd *//ig' | sed -e 's#~#$HOME#g';); eval "echo $dir"; }
-_set_workdir() { local dir=$(_expand_dir "$@"); [ -d "$dir" ] && { workdir="$(cd $dir && pwd)"; _log "change workdir '$dir'."; return 0; } || { _log "'$dir' is not a dir, or does not exist."; return 1;} }
+_set_workdir() { local dir=$(_expand_dir "$@"); [ -d "$dir" ] && { workdir=$(cd "$dir" && pwd); return 0; } || { _log "'$dir' is not a dir, or does not exist."; return 1;} }
 _save() { local objs=$(echo "$@" | sed -e 's/^save *//ig'); [ -z "$objs" ] && objs="answer result quote"; 
     for o in $objs; do [[ ":answer:result:quote:"  =~ .*:$o:.* ]] && { dst="askai.$(date +%Y%m%d_%H%M%S).$o.txt"; _log "saving $dst"; echo "${!o}" > $dst; }; done
 }
@@ -33,8 +33,8 @@ _use_result() { echo "$result" > $quote_f; quote="$result"; bot_say; echo "$(c_g
 bot_say() { echo -n "$(c_blue 'Bot ')$(c_green '> ')" >&2; }
 you_say() { 
     [ -n "$quote" ] && echo "$(c_yellow 'Quote:「')"${quote:0:60}"$(c_dark '...')$(c_yellow '」(len='${#quote}')')" >&2; 
-    local len=${#workdir}; max=40; br=$((len-12)); dispay_wd=${workdir:0:$max}; [ $len -gt $max ] && { dispay_wd="${workdir:0:12}...${workdir:$br:$len}"; } 
-    echo "$(c_orange 'You @r'$round' ')$(c_green $dispay_wd'> ')$(c_gray '(end:"ctrl-D")') " >&2; 
+    local len=${#workdir}; max=40; br=$((len-12)); display_wd="${workdir:0:$max}"; [ $len -gt $max ] && { display_wd="${workdir:0:12}...${workdir:$br:$len}"; } 
+    echo "$(c_orange 'You @r'$round' ')$(c_green "$display_wd"'> ')$(c_gray '(end:"ctrl-D")') " >&2; 
 }
 # <<< interactive <<<
 
