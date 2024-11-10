@@ -5,19 +5,19 @@ askai_dir=$HOME/.askai
 
 copy_dir() {
     local src_dir=$1; local dst_dir=$2;
-    [ ! -d $dst_dir ] && { echo "$(c_green '✓ make directory') $dst_dir">&2; mkdir -p $dst_dir; }
+    [ ! -d $dst_dir ] && { echo "$(c_green '✓ ') $(c_gray 'make directory' ) $dst_dir">&2; mkdir -p $dst_dir; }
     for f in $src_dir/*; do n=$(basename $f);
-        [ ! -f $dst_dir/$n ] && { echo "$(c_green '✓ create new file') $dst_dir/$n">&2; }
-        [ -f $dst_dir/$n ] && { echo "$(c_orange '✓ exists, overwrite') $dst_dir/$n">&2; }
+        [ ! -f $dst_dir/$n ] && { echo "$(c_green '✓ ') $(c_gray 'create new file') $dst_dir/$n">&2; }
+        [ -f $dst_dir/$n ] && { echo "$(c_orange '✓ ') $(c_gray 'exists, overwrite') $dst_dir/$n">&2; }
         cp $f $dst_dir; 
     done
 }
 
 copy_file() {
     local src_file=$1; local dst_file=$2; local dst_dir=$(dirname $dst_file);
-    [ ! -d $dst_dir ] && { echo "$(c_green '✓ make directory') $dst_dir">&2; mkdir -p $dst_dir; }
-    [ ! -f $dst_file ] && { echo "$(c_green '✓ create new file') $dst_file">&2; }
-    [ -f $dst_file ] && { echo "$(c_orange '✓ exists, overwrite') $dst_file">&2; }
+    [ ! -d $dst_dir ] && { echo "$(c_green '✓ ') $(c_gray 'make directory') $dst_dir">&2; mkdir -p $dst_dir; }
+    [ ! -f $dst_file ] && { echo "$(c_green '✓ ') $(c_gray 'create new file') $dst_file">&2; }
+    [ -f $dst_file ] && { echo "$(c_orange '✓ ') $(c_gray 'exists, overwrite') $dst_file">&2; }
     cp $src_file $dst_dir; 
 }
 
