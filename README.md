@@ -21,3 +21,7 @@ To Run
 askai chat
 ```
 
+```bash
+git diff --cached | askai chat -p '针对这些文件变更,编写好commit信息(中文)。'
+```
+
